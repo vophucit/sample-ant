@@ -1,0 +1,282 @@
+<!-- 
+*
+* Author: Tri H. Nguyen
+* $Revision: $  $Date: $ 
+*
+-->
+<project name="sample-ant" default="java" basedir=".">
+    <!-- =================================================================== -->
+    <!-- Properties                                                          -->
+    <!-- =================================================================== -->
+    <property environment="env"/>
+    
+    <property name="app.name" value="sample-ant"/>
+    <property name="app.version" value="00.01"/>
+    
+    <property name="lib" value="lib"/>
+    <property name="conf" value="conf"/>
+    <property name="docs" value="docs"/>
+    <property name="scripts" value="scripts"/>
+
+    <property name="src" value="src"/>
+    <property name="src.java" value="${src}/java"/>
+    
+    <property name="build" value="build"/>
+    <property name="build.classes" value="${build}/classes"/>
+    
+    <property name="javadoc" value="javadoc"/>
+
+    <!-- General distribution location -->
+    <property name="dist" value="dist"/>
+    <property name="dist.lib" value="${dist}/lib"/>
+
+    <!-- General deployment location -->
+    <property name="deploy" value="deploy"/>
+    <property name="deploy.lib" value="${deploy}/lib"/>
+
+    <!-- =================================================================== -->
+    <!-- Default Targets                                                     -->
+    <!-- =================================================================== -->
+    <!-- main project setup -->
+    <target name="init">
+        <mkdir dir="${build}"/>
+        <mkdir dir="${build.classes}"/>
+        
+        <mkdir dir="${dist}"/>
+        <mkdir dir="${dist.lib}"/>
+        
+        <mkdir dir="${deploy}"/>
+        
+        <mkdir dir="${javadoc}"/>
+    </target>
+    
+    <!-- clean target -->
+    <target name="clean.all">
+        <delete dir="${build}"/>
+        
+        <antcall target="clean.dist"/>
+        <antcall target="clean.deploy"/>
+        <antcall target="clean.javadoc"/>
+    </target>
+    
+    <!-- clean.dist target -->
+    <target name="clean.dist">
+        <delete dir="${dist}"/>
+    </target>
+
+    <!-- clean.deploy target -->
+    <target name="clean.deploy">
+        <delete dir="${deploy}"/>
+    </target>
+
+    <!-- clean.javadoc target -->
+    <target name="clean.javadoc">
+        <delete dir="${javadoc}"/>
+    </target>
+
+    <!-- compile.java target -->
+    <target name="compile.java">
+        <javac srcdir="${src.java}" 
+            destdir="${build.classes}"
+            verbose="false"
+            debug="true"
+            deprecation="true"
+            includeAntRuntime="false">
+            
+            <classpath>
+                <pathelement path="${classpath}"/>
+                
+                <fileset dir="${lib}">
+                    <include name="**/*.jar"/>
+                    <include name="**/*.zip"/>
+                </fileset>
+                
+                <pathelement location="${lib}"/>
+                <pathelement location="classes"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <!-- compile and build a JAR file -->
+    <target name="jar">
+        <antcall target="init"/>
+        <antcall target="compile.java"/>
+        
+        <jar jarfile="${dist.lib}/${ant.project.name}.jar"
+            basedir="${build.classes}"
+            includes="**/*.class"/>
+    </target>
+    
+    <!-- third party libraries (combine jar files) -->
+    <target name="jar.libs">
+        <jar jarfile="${dist.lib}/${ant.project.name}_libs.jar">
+            <zipgroupfileset dir="${lib}">
+                <include name="**/*.jar" />
+            </zipgroupfileset>
+        </jar>
+    </target>
+
+    <!-- javadoc -->
+    <target name="javadoc">
+        <antcall target="clean.javadoc"/>
+        
+        <javadoc sourcepath="${src.java}" 
+            destdir="${javadoc}"
+            packagenames="sample.*"
+            defaultexcludes="yes"
+            author="true"
+            version="true"
+            use="true"
+            windowtitle="Sample API"
+            bottom="&#169; 2011 All Rights Reserved"
+        >
+            <classpath>
+                <pathelement path="${classpath}"/>
+                <fileset dir="lib">
+                    <include name="**/*.jar"/>
+                    <include name="**/*.zip"/>
+                </fileset>
+                
+                <pathelement location="${build.classes}"/>
+            </classpath>
+            <doctitle><![CDATA[<h1>Sample API</h1>]]></doctitle>
+        </javadoc>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Command-line                                                        -->
+    <!-- =================================================================== -->
+    <target name="deploy.cmd" depends="dist"
+        description="Creates command-line apps for deployment"
+    >
+
+        <mkdir dir="${deploy.lib}"/>
+        
+        <copy todir="${deploy.lib}" >
+            <fileset dir="${dist.lib}">
+                <include name="**/*.jar" />
+            </fileset>
+        </copy>
+        
+        <copy todir="${deploy}" >
+             <fileset dir="${conf}"/>
+             <fileset dir="${scripts}"/>
+        </copy>
+    </target>
+    
+    <target name="dist">
+        <antcall target="jar"/>
+        <antcall target="jar.libs"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- JUnit Testing                                                       -->
+    <!-- =================================================================== -->
+    <!-- properties -->
+    <property name="test" value="test"/>
+    <property name="test.java" value="${test}/java"/>
+    <property name="build.test" value="${build}/test"/>
+    <property name="deploy.test" value="${deploy}/test"/>
+    <property name="deploy.test.lib" value="${deploy.test}/lib"/>
+    
+    <!-- init.test -->
+    <target name="init.test">
+        <mkdir dir="${build.test}"/>
+        <mkdir dir="${deploy.test}"/>
+        <mkdir dir="${deploy.test.lib}"/>
+    </target>
+
+    <!--  clean.test -->
+    <target name="clean.test">
+        <delete dir="${build.test}"/>
+        <delete dir="${deploy.test}"/>
+    </target>
+    
+    <!-- compile -->
+    <target name="compile.test">
+        <javac srcdir="${test.java}" 
+               destdir="${build.test}"
+               verbose="false"
+               debug="true"
+               deprecation="true"
+               includeAntRuntime="false">
+            <classpath>
+                <fileset dir="${lib}">
+                    <include name="**/*.jar"/>
+                    <include name="**/*.zip"/>
+                </fileset>
+                
+                <pathelement location="${lib}"/>
+                <pathelement location="${build.classes}"/>
+            </classpath>
+        </javac>
+    </target>
+    
+    <!-- compile and build a JAR file -->
+    <target name="jar.test">
+        <antcall target="init.test"/>
+        <antcall target="compile.test"/>
+
+        <jar jarfile="${dist.lib}/${ant.project.name}_test.jar"
+             basedir="${build.test}"
+             includes="**/*.class"
+        />
+    </target>
+
+    <!-- deploy.cmd.test -->
+    <target name="deploy.cmd.test" depends="dist.test"
+            description="Creates applications for testing"
+    >
+        <copy todir="${deploy.test}/lib" >
+            <fileset dir="${dist.lib}">
+                <include name="**/*.jar" />
+            </fileset>
+        </copy>
+        
+        <copy todir="${deploy.test}" >
+            <fileset dir="${conf}"/>
+            <fileset dir="${scripts}">
+                <include name="setenv.cmd" />
+                <include name="setenv_test.cmd" />
+                <include name="*_test.cmd" />
+            </fileset>
+        </copy>
+    </target>
+
+    <!-- dist.test -->
+    <target name="dist.test">
+        <antcall target="dist"/>
+        <antcall target="jar.test"/>
+    </target>
+    
+    <path id="test.classpath">
+        <pathelement location="${conf}"/>
+        <pathelement location="${dist.lib}/${ant.project.name}.jar"/>
+        <pathelement location="${dist.lib}/${ant.project.name}_test.jar"/>
+        <pathelement location="${dist.lib}/${ant.project.name}_libs.jar"/>
+    </path>
+
+    <!-- test.cmd.hello -->
+    <target name="test.cmd" depends="dist.test"
+            description="Tests command-line apps"
+    >
+        <junit>
+            <classpath refid="test.classpath" />
+            <formatter type="brief" usefile="false" />
+            <test name="sample.hello.HelloTest" />
+            <test name="sample.greetings.GreetingsTest" />
+        </junit>
+    </target>
+    
+    <!-- dist.test.hello -->
+    <target name="dist.test.hello" depends="dist.test">
+        <jar jarfile="${dist.lib}/${hello.name}.jar" basedir="${build.classes}">
+            <include name="sample/hello/Hello.class" />
+        </jar>
+        
+        <jar jarfile="${dist.lib}/${hello.name}_test.jar" basedir="${build.test}">
+            <include name="sample/hello/HelloTest.class" />
+        </jar>
+    </target>
+    
+</project>
